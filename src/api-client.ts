@@ -1,4 +1,5 @@
 import { config } from './config.js';
+import { TokenBucketRateLimiter, type RateGate } from './rate-limit.js';
 
 export type ValuationOptions = {
   cities: { slug: string; name: string }[];
@@ -38,14 +39,20 @@ export class ApiClient {
   private readonly baseUrl: string;
   private readonly userAgent: string;
   private readonly timeoutMs: number;
+  private readonly limiter: RateGate;
 
-  constructor(opts: { baseUrl?: string; userAgent?: string; timeoutMs?: number } = {}) {
+  constructor(
+    opts: { baseUrl?: string; userAgent?: string; timeoutMs?: number; limiter?: RateGate } = {},
+  ) {
     this.baseUrl = (opts.baseUrl ?? config.apiUrl).replace(/\/+$/, '');
     this.userAgent = opts.userAgent ?? config.userAgent;
     this.timeoutMs = opts.timeoutMs ?? config.httpTimeoutMs;
+    this.limiter =
+      opts.limiter ?? new TokenBucketRateLimiter({ ratePerMinute: config.rateLimitPerMin });
   }
 
   private async get<T>(path: string, opts: { allow404?: boolean } = {}): Promise<T | null> {
+    this.limiter.take();
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}${path}`, {
@@ -63,6 +70,7 @@ export class ApiClient {
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
+    this.limiter.take();
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}${path}`, {
