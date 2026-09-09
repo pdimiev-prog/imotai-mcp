@@ -41,12 +41,26 @@ function card(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
-function client(resp: { data?: unknown[]; meta?: Record<string, unknown> } = {}) {
+function client(
+  resp: {
+    data?: unknown[];
+    meta?: Record<string, unknown>;
+    options?: unknown;
+    pages?: Record<string, unknown | null>;
+  } = {},
+) {
   return {
     search: async (_params: unknown) => ({
       data: resp.data ?? [card()],
       meta: resp.meta ?? { page: 1, limit: 10, total: 1, totalPages: 1 },
     }),
+    getValuationOptions: async () =>
+      (resp.options ?? {
+        cities: [{ slug: 'sofia', name: 'София' }],
+        hoods: [{ citySlug: 'sofia', slug: 'lozenets', name: 'Лозенец' }],
+        types: [],
+      }) as any,
+    getPricePage: async (p: string) => (resp.pages ? (resp.pages[p] ?? null) : null) as any,
   } as any;
 }
 
@@ -80,7 +94,30 @@ describe('searchProperties', () => {
       district: 'Лозенец',
       city: 'София',
       region: 'София-град',
+      marketContext: null,
     });
+  });
+
+  it('attaches district-level marketContext from a /ceni page', async () => {
+    const out = await searchProperties(
+      client({
+        pages: {
+          '/ceni/sofia/lozenets': {
+            count: 40,
+            avgPpsqm: 2600,
+            ppsqm: { p25: 0, p50: 2550, p75: 0 },
+            byRooms: [{ label: '3 стаи', count: 12, avgPpsqm: 2700 }],
+          },
+        },
+      }),
+      { city: 'sofia', transactionType: 'sale' },
+    );
+    if ('error' in out) throw new Error('unexpected error');
+    const mc = out.results[0].marketContext!;
+    expect(mc.districtAveragePricePerSqm).toBe(2700); // 3-room bucket (card rooms: 3)
+    expect(mc.comparableListings).toBe(12);
+    expect(mc.deviationPercent).toBe(4); // round((2800-2700)/2700*100)
+    expect(mc.basis).toMatch(/district offers/i);
   });
 
   it('LEAKS NOTHING: no personal / contact / location / internal fields in any row', async () => {

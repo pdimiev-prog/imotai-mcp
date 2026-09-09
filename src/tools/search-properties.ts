@@ -1,5 +1,7 @@
 import type { ApiClient, PropertyRecord } from '../api-client.js';
 import { num, str } from '../lib/coerce.js';
+import { normalizeKey } from '../normalize.js';
+import { districtMarketContext, type DistrictMarketContext } from '../lib/market-context.js';
 
 const SITE = 'https://imotai.bg';
 
@@ -40,6 +42,7 @@ export type SearchResultRow = {
   district: string | null;
   city: string | null;
   region: string | null;
+  marketContext: DistrictMarketContext | null;
 };
 
 function detailUrl(p: PropertyRecord): string {
@@ -48,7 +51,7 @@ function detailUrl(p: PropertyRecord): string {
 }
 
 /** Explicit allowlist — a field not written here is a field not leaked. */
-function toRow(p: PropertyRecord): SearchResultRow {
+function toRow(p: PropertyRecord): Omit<SearchResultRow, 'marketContext'> {
   return {
     id: String(p.id ?? ''),
     url: detailUrl(p),
@@ -77,7 +80,7 @@ function toRow(p: PropertyRecord): SearchResultRow {
 }
 
 export async function searchProperties(
-  client: Pick<ApiClient, 'search'>,
+  client: Pick<ApiClient, 'search' | 'getValuationOptions' | 'getPricePage'>,
   input: SearchInput,
 ): Promise<{ results: SearchResultRow[]; total: number; shown: number } | { error: string }> {
   const limit = Math.min(25, Math.max(1, Math.trunc(input.limit ?? 10)));
@@ -103,6 +106,49 @@ export async function searchProperties(
     return { error: `Search failed: ${(err as Error).message}` };
   }
 
-  const rows = (Array.isArray(res.data) ? res.data : []).slice(0, limit).map(toRow);
-  return { results: rows, total: num(res.meta?.total) ?? rows.length, shown: rows.length };
+  const cards = Array.isArray(res.data) ? res.data.slice(0, limit) : [];
+  const baseRows = cards.map(toRow);
+
+  // District-level market context: one /ceni lookup per distinct (city, district),
+  // resolved to slugs via valuation-options. Never call get_property per row.
+  const geoKey = (city: string | null, district: string | null): string | null =>
+    city && district ? `${normalizeKey(city)}|${normalizeKey(district)}` : null;
+
+  const pageByGeo = new Map<string, unknown>();
+  try {
+    const distinct = new Set(
+      baseRows.map((r) => geoKey(r.city, r.district)).filter((k): k is string => !!k),
+    );
+    if (distinct.size > 0) {
+      const opts = await client.getValuationOptions();
+      for (const key of distinct) {
+        const [cityKey, districtKey] = key.split('|');
+        const city = opts.cities.find(
+          (c) => normalizeKey(c.slug) === cityKey || normalizeKey(c.name) === cityKey,
+        );
+        if (!city) continue;
+        const hood = opts.hoods.find(
+          (h) =>
+            h.citySlug === city.slug &&
+            (normalizeKey(h.slug) === districtKey || normalizeKey(h.name) === districtKey),
+        );
+        if (!hood) continue;
+        const page = await client.getPricePage(`/ceni/${city.slug}/${hood.slug}`).catch(() => null);
+        if (page) pageByGeo.set(key, page);
+      }
+    }
+  } catch {
+    // market context is best-effort; a failure just leaves it null
+  }
+
+  const results: SearchResultRow[] = baseRows.map((r) => {
+    const key = geoKey(r.city, r.district);
+    const page = key ? pageByGeo.get(key) : null;
+    return {
+      ...r,
+      marketContext: page ? districtMarketContext(page, r.pricePerSqm, r.rooms) : null,
+    };
+  });
+
+  return { results, total: num(res.meta?.total) ?? results.length, shown: results.length };
 }
