@@ -11,9 +11,11 @@ closed transactions.
 
 ## Status
 
-**M5 — five tools.** `list_districts`, `search_properties`, `get_property`,
-`get_market_stats` and `estimate_value` are live; the property tools carry a
-`marketContext` block. Next: rate limiting, then a public GitHub repo.
+**M6 — v1 complete.** Five tools (`list_districts`, `search_properties`,
+`get_property`, `get_market_stats`, `estimate_value`), each with an explicit output
+allowlist; the property tools carry a `marketContext` block; outbound calls are rate
+limited to 60/min per process. Next: BA creates the public GitHub repo and the
+`apps/mcp-server/` folder moves there as the root.
 
 ## Install
 
@@ -162,12 +164,30 @@ was blended into the figure, and the `disclaimer` then says so.
 > transactions.** The `disclaimer` field is present on every `available` result;
 > show it to the user verbatim whenever you cite any number from this tool.
 
+## Rate limiting
+
+The server allows **60 downstream requests per minute per process** (token bucket,
+refills continuously). Every call to `imotai.bg/api` counts — a `search_properties`
+that resolves three distinct districts spends four requests (one search + three price
+pages).
+
+When the bucket is empty a tool returns, without throwing:
+
+```json
+{ "error": "Твърде много заявки за кратко — изчакайте минута." }
+```
+
+Wait about a minute and retry. The limit is per running server process; a single
+Claude Desktop client is one process. Override it with `IMOTAI_RATE_LIMIT_PER_MIN`
+if you run your own instance.
+
 ## Configuration
 
 | Env var | Default | Meaning |
 |---|---|---|
 | `IMOTAI_API_URL` | `https://imotai.bg/api` | Base URL of the ImotAI public API |
 | `IMOTAI_HTTP_TIMEOUT_MS` | `15000` | Per-request timeout |
+| `IMOTAI_RATE_LIMIT_PER_MIN` | `60` | Max downstream requests per minute (token bucket, per process) |
 
 ## How it works
 
