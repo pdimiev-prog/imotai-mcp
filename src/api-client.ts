@@ -32,6 +32,8 @@ export type SearchResponse = {
 
 export type PricePageRecord = Record<string, unknown>;
 
+export type ValuationParams = { city: string; type: string; area: string | number; hood?: string };
+
 export class ApiClient {
   private readonly baseUrl: string;
   private readonly userAgent: string;
@@ -102,5 +104,15 @@ export class ApiClient {
     return this.get<PricePageRecord>(`/properties/price?path=${encodeURIComponent(path)}`, {
       allow404: true,
     });
+  }
+
+  getValuation(params: ValuationParams): Promise<PropertyRecord | null> {
+    const qs = new URLSearchParams({
+      city: params.city,
+      type: params.type,
+      area: String(params.area),
+    });
+    if (params.hood) qs.set('hood', params.hood);
+    return this.get<PropertyRecord>(`/properties/valuation?${qs.toString()}`, { allow404: true });
   }
 }
