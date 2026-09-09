@@ -11,9 +11,9 @@ closed transactions.
 
 ## Status
 
-**M4 — four tools + market context.** `list_districts`, `search_properties`,
-`get_property` and `get_market_stats` are live, and the property tools now carry a
-`marketContext` block. `estimate_value` comes next.
+**M5 — five tools.** `list_districts`, `search_properties`, `get_property`,
+`get_market_stats` and `estimate_value` are live; the property tools carry a
+`marketContext` block. Next: rate limiting, then a public GitHub repo.
 
 ## Install
 
@@ -121,6 +121,46 @@ below its district":
 Both are `null` when the district has fewer than 8 offers or no price page. The
 two levels use slightly different denominators, so their numbers are close but
 not identical — the `get_property` figure is the precise one.
+
+## `estimate_value`
+
+**Input:**
+
+| Field | Type | Notes |
+|---|---|---|
+| `city` | string, required | Slug or Bulgarian name from `list_districts` |
+| `district` | string, required | Slug or Bulgarian name from `list_districts` |
+| `propertyType` | enum, required | `apartment`, `house`, `villa`, `studio`, `land` |
+| `area` | number, required | Living area in m² |
+| `rooms` | integer | Accepted but **not** used for filtering |
+
+**Output:**
+
+```jsonc
+{
+  "available": true,
+  "estimate": 208000,
+  "rangeLow": 184000,
+  "rangeHigh": 240000,
+  "basedOnCount": 40,
+  "confidence": "medium",          // from sample size; forced "low" for the market blend
+  "disclaimer": "…",               // ALWAYS present — show verbatim
+  "referenceUrl": "https://imotai.bg/ceni/sofia/lozenets"
+}
+```
+
+Below 5 comparable offers it returns `{ "available": false, "reason": "…",
+"disclaimer": "…" }` — still with a `disclaimer`. An unknown city or district
+returns `{ "error": "…" }` pointing at `list_districts` (no `disclaimer` there).
+
+`confidence` is `high` at ≥ 50 comparable offers, `medium` at ≥ 15, otherwise
+`low`; it is **always `low`** when external market data (imot.bg / alo.bg / Grok)
+was blended into the figure, and the `disclaimer` then says so.
+
+> ⚠️ **This is positioning against the CURRENT ASKING PRICES of comparable active
+> listings — not an appraisal, not an official valuation, not based on closed
+> transactions.** The `disclaimer` field is present on every `available` result;
+> show it to the user verbatim whenever you cite any number from this tool.
 
 ## Configuration
 

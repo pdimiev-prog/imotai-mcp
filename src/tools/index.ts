@@ -5,6 +5,7 @@ import { listDistricts } from './list-districts.js';
 import { searchProperties, type SearchInput } from './search-properties.js';
 import { getProperty } from './get-property.js';
 import { getMarketStats } from './get-market-stats.js';
+import { estimateValue } from './estimate-value.js';
 
 const LIST_DISTRICTS_DESCRIPTION =
   'List the districts (neighbourhoods) of a Bulgarian city that ImotAI has data for, ' +
@@ -125,6 +126,41 @@ export function registerTools(server: McpServer, client: ApiClient): void {
     },
     async ({ city, district }) => {
       const result = await getMarketStats(client, { city, district });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        isError: 'error' in result,
+      };
+    },
+  );
+
+  const VALUATION_TYPES = ['apartment', 'house', 'villa', 'studio', 'land'] as const;
+
+  server.registerTool(
+    'estimate_value',
+    {
+      title: 'ImotAI rough value positioning',
+      description:
+        'Rough price positioning for a property by city, district, type and area — based on the ' +
+        'CURRENT ASKING PRICES of comparable active listings, not on closed transactions. Returns ' +
+        'an estimate, a low–high range, a confidence level from sample size, and a mandatory ' +
+        'disclaimer. Refuses below 5 comparable offers. You MUST show the "disclaimer" field to ' +
+        'the user verbatim whenever you cite any number from this tool. Never call this an ' +
+        'official or precise property valuation.',
+      inputSchema: {
+        city: z.string().min(1).describe('City slug ("sofia") or Bulgarian name.'),
+        district: z.string().min(1).describe('District slug or name from list_districts.'),
+        propertyType: z.enum(VALUATION_TYPES),
+        area: z.number().positive().describe('Living area in m².'),
+        rooms: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe('Accepted but not used for filtering.'),
+      },
+    },
+    async ({ city, district, propertyType, area, rooms }) => {
+      const result = await estimateValue(client, { city, district, propertyType, area, rooms });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         isError: 'error' in result,
