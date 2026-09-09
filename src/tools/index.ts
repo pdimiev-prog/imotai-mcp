@@ -52,8 +52,9 @@ export function registerTools(server: McpServer, client: ApiClient): void {
       title: 'Search ImotAI listings',
       description:
         'Search Bulgarian real-estate listings on imotai.bg by city, district, property type, ' +
-        'price range, area range and rooms. Returns up to 25 listings with structured fields and ' +
-        'a link to each. No contact details or free-text descriptions.',
+        'price range, area range and rooms. Returns up to 25 listings with structured fields, a ' +
+        'link to each, and a district-level marketContext block (district average price per m² and ' +
+        'how far this listing deviates from it). No contact details or free-text descriptions.',
       inputSchema: {
         city: z.string().min(1).describe('City slug ("sofia") or Bulgarian name.'),
         district: z
@@ -88,8 +89,10 @@ export function registerTools(server: McpServer, client: ApiClient): void {
       title: 'Get one ImotAI listing',
       description:
         'Get the full structured data for one ImotAI listing by its id or slug: price, price per m², ' +
-        'area, rooms, floor, construction, heating, location (city/district), and features. ' +
-        'Does NOT return the broker free-text description, contact details, or exact coordinates.',
+        'area, rooms, floor, construction, heating, location (city/district), features, and an ' +
+        'authoritative per-listing marketContext (district average and median price per m², ' +
+        'deviation percent, comparable active count). Does NOT return the broker free-text ' +
+        'description, contact details, or exact coordinates.',
       inputSchema: {
         id: z.string().min(1).describe('The listing id (UUID) or its URL slug.'),
       },

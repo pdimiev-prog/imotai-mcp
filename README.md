@@ -11,9 +11,9 @@ closed transactions.
 
 ## Status
 
-**M3 — four tools.** `list_districts`, `search_properties`, `get_property` and
-`get_market_stats` are live. `estimate_value` comes next; per-listing market
-context is added after that.
+**M4 — four tools + market context.** `list_districts`, `search_properties`,
+`get_property` and `get_market_stats` are live, and the property tools now carry a
+`marketContext` block. `estimate_value` comes next.
 
 ## Install
 
@@ -104,6 +104,23 @@ price: {p25,p50,p75}, pricePerSqm: {p25,p50,p75}, byRooms: [...],
 neighbouringDistricts: [...], basis, url }`. Sale offers, all residential types.
 Below 8 offers → `{ available: false, count, reason }`. Unknown city/district →
 `{ error }` pointing at `list_districts`.
+
+## Market context
+
+Both property tools attach a `marketContext` — "is this listing priced above or
+below its district":
+
+- **`get_property.marketContext`** is the authoritative per-listing figure from
+  ImotAI's own calculation: `districtAveragePricePerSqm`, `districtMedianPricePerSqm`,
+  `deviationPercent` (+ = pricier than the district), `comparableActiveListings`,
+  `basedOnCount`, `pricePageUrl`.
+- **`search_properties[].marketContext`** is a lighter district-level
+  approximation for scanning (one price-page lookup per distinct district):
+  `districtAveragePricePerSqm`, `deviationPercent`, `comparableListings`, `basis`.
+
+Both are `null` when the district has fewer than 8 offers or no price page. The
+two levels use slightly different denominators, so their numbers are close but
+not identical — the `get_property` figure is the precise one.
 
 ## Configuration
 
