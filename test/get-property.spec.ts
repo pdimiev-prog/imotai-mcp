@@ -42,7 +42,14 @@ const full = {
   longitude: 23.29,
   street: 'ул. Скрита 7',
   viewCount: 91,
-  priceContext: { hoodAvgPpsqm: 2900 },
+  priceContext: {
+    hoodAvgPpsqm: 2900,
+    hoodMedianPpsqm: 2850,
+    vsAvgPct: 7,
+    similarCount: 11,
+    sampleCount: 33,
+    cenniPath: '/ceni/sofia/vitosha',
+  },
 };
 
 function client(value: unknown) {
@@ -77,6 +84,20 @@ describe('getProperty', () => {
       isNewConstruction: false,
       createdAt: '2026-08-01T10:00:00.000Z',
     });
+    expect(out.marketContext).toEqual({
+      districtAveragePricePerSqm: 2900,
+      districtMedianPricePerSqm: 2850,
+      deviationPercent: 7,
+      comparableActiveListings: 11,
+      basedOnCount: 33,
+      pricePageUrl: 'https://imotai.bg/ceni/sofia/vitosha',
+    });
+  });
+
+  it('null API priceContext → marketContext null', async () => {
+    const out = await getProperty(client({ ...full, priceContext: null }), { id: 'uuid-1' });
+    if (!out.found) throw new Error('expected found');
+    expect(out.marketContext).toBeNull();
   });
 
   it('LEAKS NOTHING: no description/contact/location/internal fields', async () => {

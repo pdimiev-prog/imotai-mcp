@@ -1,5 +1,6 @@
 import type { ApiClient, PropertyRecord } from '../api-client.js';
 import { num, str } from '../lib/coerce.js';
+import { listingMarketContext, type ListingMarketContext } from '../lib/market-context.js';
 
 const SITE = 'https://imotai.bg';
 
@@ -38,6 +39,7 @@ export type GetPropertyResult =
       features: string[];
       isNewConstruction: boolean;
       createdAt: string | null;
+      marketContext: ListingMarketContext | null;
     };
 
 function detailUrl(p: PropertyRecord): string {
@@ -94,5 +96,6 @@ export async function getProperty(
     features,
     isNewConstruction: Boolean(p.isNewConstruction),
     createdAt: str(p.createdAt, 40),
+    marketContext: listingMarketContext(p.priceContext),
   };
 }
