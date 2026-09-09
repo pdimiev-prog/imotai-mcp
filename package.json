@@ -1,0 +1,26 @@
+{
+  "name": "imotai-mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server exposing structured, read-only ImotAI (imotai.bg) real-estate data to AI agents.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "imotai-mcp-server": "dist/index.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.40",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
