@@ -4,6 +4,7 @@ import type { ApiClient } from '../api-client.js';
 import { listDistricts } from './list-districts.js';
 import { searchProperties, type SearchInput } from './search-properties.js';
 import { getProperty } from './get-property.js';
+import { getMarketStats } from './get-market-stats.js';
 
 const LIST_DISTRICTS_DESCRIPTION =
   'List the districts (neighbourhoods) of a Bulgarian city that ImotAI has data for, ' +
@@ -98,6 +99,32 @@ export function registerTools(server: McpServer, client: ApiClient): void {
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         isError: result.found === false,
+      };
+    },
+  );
+
+  server.registerTool(
+    'get_market_stats',
+    {
+      title: 'ImotAI market statistics for a city or district',
+      description:
+        'The market picture for a Bulgarian city or district on imotai.bg: number of offers, ' +
+        'average and P25/P50/P75 for total price and price per m², a breakdown by room count, ' +
+        'and the neighbouring districts for comparison. Sale offers, all residential types. ' +
+        'Returns { available: false } below 8 offers.',
+      inputSchema: {
+        city: z.string().min(1).describe('City slug ("sofia") or Bulgarian name.'),
+        district: z
+          .string()
+          .optional()
+          .describe('District slug or name from list_districts; omit for city-level stats.'),
+      },
+    },
+    async ({ city, district }) => {
+      const result = await getMarketStats(client, { city, district });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        isError: 'error' in result,
       };
     },
   );

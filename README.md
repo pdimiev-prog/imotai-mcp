@@ -11,9 +11,9 @@ closed transactions.
 
 ## Status
 
-**M2 — three tools.** `list_districts`, `search_properties` and `get_property` are
-live. `get_market_stats` and `estimate_value` come next; per-listing market context
-is added after that.
+**M3 — four tools.** `list_districts`, `search_properties`, `get_property` and
+`get_market_stats` are live. `estimate_value` comes next; per-listing market
+context is added after that.
 
 ## Install
 
@@ -93,6 +93,17 @@ coordinates.
 **Output:** `{ found: true, url, ...structured fields, features: [] }`, or
 `{ found: false, reason }` if there is no such listing. Never returns the broker
 description, phone/name, or exact coordinates.
+
+### `get_market_stats`
+
+**Input:** `{ city: string, district?: string }` — slugs or Bulgarian names from
+`list_districts`. Omit `district` for city-level stats.
+
+**Output:** `{ available: true, city, district, count, avgPrice, avgPricePerSqm,
+price: {p25,p50,p75}, pricePerSqm: {p25,p50,p75}, byRooms: [...],
+neighbouringDistricts: [...], basis, url }`. Sale offers, all residential types.
+Below 8 offers → `{ available: false, count, reason }`. Unknown city/district →
+`{ error }` pointing at `list_districts`.
 
 ## Configuration
 
