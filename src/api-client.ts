@@ -30,6 +30,8 @@ export type SearchResponse = {
   meta: { page: number; limit: number; total: number; totalPages: number };
 };
 
+export type PricePageRecord = Record<string, unknown>;
+
 export class ApiClient {
   private readonly baseUrl: string;
   private readonly userAgent: string;
@@ -94,5 +96,11 @@ export class ApiClient {
 
   getProperty(idOrSlug: string): Promise<PropertyRecord | null> {
     return this.get<PropertyRecord>(`/properties/${encodeURIComponent(idOrSlug)}`, { allow404: true });
+  }
+
+  getPricePage(path: string): Promise<PricePageRecord | null> {
+    return this.get<PricePageRecord>(`/properties/price?path=${encodeURIComponent(path)}`, {
+      allow404: true,
+    });
   }
 }
