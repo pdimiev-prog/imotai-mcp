@@ -1,6 +1,7 @@
 import type { ApiClient, PropertyRecord } from '../api-client.js';
 import { num, str } from '../lib/coerce.js';
 import { listingMarketContext, type ListingMarketContext } from '../lib/market-context.js';
+import { RateLimitError } from '../rate-limit.js';
 
 const SITE = 'https://imotai.bg';
 
@@ -55,6 +56,7 @@ export async function getProperty(
   try {
     p = await client.getProperty(input.id);
   } catch (err) {
+    if (err instanceof RateLimitError) throw err;
     return { found: false, reason: `Lookup failed: ${(err as Error).message}` };
   }
   if (!p) {

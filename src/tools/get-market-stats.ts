@@ -1,6 +1,7 @@
 import type { ApiClient, PricePageRecord } from '../api-client.js';
 import { resolveCity, normalizeKey } from '../normalize.js';
 import { num, str } from '../lib/coerce.js';
+import { RateLimitError } from '../rate-limit.js';
 
 const SITE = 'https://imotai.bg';
 const MIN_SAMPLE = 8;
@@ -83,6 +84,7 @@ export async function getMarketStats(
   try {
     page = await client.getPricePage(path);
   } catch (err) {
+    if (err instanceof RateLimitError) throw err;
     return { error: `Market stats lookup failed: ${(err as Error).message}` };
   }
   if (!page) {

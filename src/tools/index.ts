@@ -6,6 +6,32 @@ import { searchProperties, type SearchInput } from './search-properties.js';
 import { getProperty } from './get-property.js';
 import { getMarketStats } from './get-market-stats.js';
 import { estimateValue } from './estimate-value.js';
+import { RateLimitError } from '../rate-limit.js';
+
+type ToolResult = { content: { type: 'text'; text: string }[]; isError: boolean };
+
+function toToolResult(result: unknown): ToolResult {
+  const obj =
+    typeof result === 'object' && result !== null ? (result as Record<string, unknown>) : null;
+  const isError = !!obj && ('error' in obj || obj.found === false);
+  return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], isError };
+}
+
+/** Run a tool body; convert any thrown error — RateLimitError especially — into a clean result. */
+async function guard(run: () => Promise<unknown>): Promise<ToolResult> {
+  try {
+    return toToolResult(await run());
+  } catch (err) {
+    const message =
+      err instanceof RateLimitError
+        ? err.message
+        : `ImotAI request failed: ${(err as Error).message}`;
+    return {
+      content: [{ type: 'text', text: JSON.stringify({ error: message }, null, 2) }],
+      isError: true,
+    };
+  }
+}
 
 const LIST_DISTRICTS_DESCRIPTION =
   'List the districts (neighbourhoods) of a Bulgarian city that ImotAI has data for, ' +
@@ -38,13 +64,7 @@ export function registerTools(server: McpServer, client: ApiClient): void {
           .describe('City slug ("sofia") or its Bulgarian name ("София").'),
       },
     },
-    async ({ city }) => {
-      const result = await listDistricts(client, { city });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        isError: 'error' in result,
-      };
-    },
+    async ({ city }) => guard(() => listDistricts(client, { city })),
   );
 
   server.registerTool(
@@ -75,13 +95,7 @@ export function registerTools(server: McpServer, client: ApiClient): void {
         limit: z.number().int().min(1).max(25).optional().describe('Default 10, max 25.'),
       },
     },
-    async (input) => {
-      const result = await searchProperties(client, input as SearchInput);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        isError: 'error' in result,
-      };
-    },
+    async (input) => guard(() => searchProperties(client, input as SearchInput)),
   );
 
   server.registerTool(
@@ -98,13 +112,7 @@ export function registerTools(server: McpServer, client: ApiClient): void {
         id: z.string().min(1).describe('The listing id (UUID) or its URL slug.'),
       },
     },
-    async ({ id }) => {
-      const result = await getProperty(client, { id });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        isError: result.found === false,
-      };
-    },
+    async ({ id }) => guard(() => getProperty(client, { id })),
   );
 
   server.registerTool(
@@ -124,13 +132,7 @@ export function registerTools(server: McpServer, client: ApiClient): void {
           .describe('District slug or name from list_districts; omit for city-level stats.'),
       },
     },
-    async ({ city, district }) => {
-      const result = await getMarketStats(client, { city, district });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        isError: 'error' in result,
-      };
-    },
+    async ({ city, district }) => guard(() => getMarketStats(client, { city, district })),
   );
 
   const VALUATION_TYPES = ['apartment', 'house', 'villa', 'studio', 'land'] as const;
@@ -159,12 +161,7 @@ export function registerTools(server: McpServer, client: ApiClient): void {
           .describe('Accepted but not used for filtering.'),
       },
     },
-    async ({ city, district, propertyType, area, rooms }) => {
-      const result = await estimateValue(client, { city, district, propertyType, area, rooms });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-        isError: 'error' in result,
-      };
-    },
+    async ({ city, district, propertyType, area, rooms }) =>
+      guard(() => estimateValue(client, { city, district, propertyType, area, rooms })),
   );
 }

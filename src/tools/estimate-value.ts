@@ -1,6 +1,7 @@
 import type { ApiClient, PropertyRecord } from '../api-client.js';
 import { resolveCity, normalizeKey } from '../normalize.js';
 import { num, str } from '../lib/coerce.js';
+import { RateLimitError } from '../rate-limit.js';
 
 const SITE = 'https://imotai.bg';
 
@@ -79,6 +80,7 @@ export async function estimateValue(
       hood: hood.slug,
     });
   } catch (err) {
+    if (err instanceof RateLimitError) throw err;
     return { error: `Valuation lookup failed: ${(err as Error).message}` };
   }
 
