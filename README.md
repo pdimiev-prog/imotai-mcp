@@ -11,8 +11,9 @@ closed transactions.
 
 ## Status
 
-**M1 — one tool.** `list_districts` is live. `search_properties`, `get_property`,
-`get_market_stats` and `estimate_value` come next.
+**M2 — three tools.** `list_districts`, `search_properties` and `get_property` are
+live. `get_market_stats` and `estimate_value` come next; per-listing market context
+is added after that.
 
 ## Install
 
@@ -65,6 +66,33 @@ Claude will call `list_districts` and answer from the result.
 An unknown city returns `{ "error": "Unknown city \"…\". Recognised city slugs: …" }`.
 Call this first — the slugs it returns are the valid `district` values for the
 other tools.
+
+### `search_properties`
+
+**Input:**
+
+| Field | Type | Notes |
+|---|---|---|
+| `city` | string, required | Slug or Bulgarian name |
+| `transactionType` | `"sale"` \| `"rent"`, required | |
+| `district` | string | Slug from `list_districts` |
+| `propertyType` | enum | `apartment`, `house`, `villa`, `studio`, `office`, `shop`, `warehouse`, `land`, `garage`, `other` |
+| `minPrice` / `maxPrice` | number | EUR |
+| `minArea` / `maxArea` | number | m² |
+| `rooms` | string | CSV, e.g. `"2,3"`; `"5+"` for 5 or more |
+| `limit` | integer 1–25 | Default 10 |
+
+**Output:** `{ results: [...], total, shown }`. Each result has structured fields
+plus a `url` to the listing. No contact details, no free-text description, no
+coordinates.
+
+### `get_property`
+
+**Input:** `{ id: string }` — the listing's UUID **or** its URL slug.
+
+**Output:** `{ found: true, url, ...structured fields, features: [] }`, or
+`{ found: false, reason }` if there is no such listing. Never returns the broker
+description, phone/name, or exact coordinates.
 
 ## Configuration
 
