@@ -14,14 +14,15 @@ closed transactions.
 **M6 — v1 complete.** Five tools (`list_districts`, `search_properties`,
 `get_property`, `get_market_stats`, `estimate_value`), each with an explicit output
 allowlist; the property tools carry a `marketContext` block; outbound calls are rate
-limited to 60/min per process. Next: BA creates the public GitHub repo and the
-`apps/mcp-server/` folder moves there as the root.
+limited to 60/min per process.
 
 ## Install
 
 ```bash
-pnpm install
-pnpm --filter imotai-mcp-server build   # produces dist/index.js
+git clone https://github.com/pdimiev-prog/imotai-mcp.git
+cd imotai-mcp
+npm install
+npm run build   # produces dist/index.js
 ```
 
 ## Use it in Claude Desktop
@@ -33,7 +34,7 @@ Add this to `claude_desktop_config.json` (use the **absolute** path to `dist/ind
   "mcpServers": {
     "imotai": {
       "command": "node",
-      "args": ["/absolute/path/to/apps/mcp-server/dist/index.js"],
+      "args": ["/absolute/path/to/imotai-mcp/dist/index.js"],
       "env": { "IMOTAI_API_URL": "https://imotai.bg/api" }
     }
   }
