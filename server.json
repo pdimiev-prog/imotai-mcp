@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "bg.imotai/imotai",
+  "description": "Bulgarian real-estate listings, district prices and monthly market reports from imotai.bg.",
+  "repository": {
+    "url": "https://github.com/pdimiev-prog/imotai-mcp",
+    "source": "github",
+    "id": "1367735899"
+  },
+  "version": "0.2.0",
+  "title": "ImotAI — Bulgarian real estate",
+  "websiteUrl": "https://imotai.bg/ii-asistenti",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://imotai.bg/mcp"
+    }
+  ]
+}
