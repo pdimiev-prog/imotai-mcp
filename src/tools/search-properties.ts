@@ -1,6 +1,7 @@
+import { RateLimitError } from '../rate-limit.js';
 import type { ApiClient, PropertyRecord } from '../api-client.js';
 import { num, str } from '../lib/coerce.js';
-import { normalizeKey } from '../normalize.js';
+import { resolveCity, normalizeKey } from '../normalize.js';
 import { districtMarketContext, type DistrictMarketContext } from '../lib/market-context.js';
 
 const SITE = 'https://imotai.bg';
@@ -84,13 +85,33 @@ export async function searchProperties(
   input: SearchInput,
 ): Promise<{ results: SearchResultRow[]; total: number; shown: number } | { error: string }> {
   const limit = Math.min(25, Math.max(1, Math.trunc(input.limit ?? 10)));
+  // Търсенето на сайта иска града и квартала на кирилица („Пловдив“, „Кършияка“);
+  // slug-ът („plovdiv“) връща 0 обяви (01.11.2026). Превеждаме през valuation-options.
+  let cityName = input.city;
+  let districtName = input.district;
+  try {
+    const opts = await client.getValuationOptions();
+    const city = resolveCity(input.city, opts.cities);
+    if (city) {
+      cityName = city.name;
+      if (input.district) {
+        const key = normalizeKey(input.district);
+        const hood = opts.hoods.find(
+          (h) => h.citySlug === city.slug && (normalizeKey(h.slug) === key || normalizeKey(h.name) === key),
+        );
+        if (hood) districtName = hood.name;
+      }
+    }
+  } catch (err) {
+    if (err instanceof RateLimitError) throw err;
+  }
   const params = {
     page: 1,
     limit,
     sortBy: 'relevance',
-    city: input.city,
+    city: cityName,
     listingType: input.transactionType,
-    ...(input.district ? { neighborhood: input.district } : {}),
+    ...(districtName ? { neighborhood: districtName } : {}),
     ...(input.propertyType ? { propertyType: input.propertyType } : {}),
     ...(input.minPrice != null ? { priceMin: input.minPrice } : {}),
     ...(input.maxPrice != null ? { priceMax: input.maxPrice } : {}),

@@ -33,7 +33,7 @@ export type EstimateValueResult =
 
 function buildDisclaimer(basedOnCount: number, isBlend: boolean): string {
   const sample = `Базирано на извадка от ${basedOnCount} обяви.`;
-  const ext = isBlend ? ' Включени са и външни пазарни данни (imot.bg / alo.bg / Grok).' : '';
+  const ext = isBlend ? ' Включени са и външни пазарни данни.' : '';
   return `${DISCLAIMER_BASE} ${sample}${ext}`;
 }
 

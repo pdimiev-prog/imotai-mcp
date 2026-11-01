@@ -6,6 +6,7 @@ import { searchProperties, type SearchInput } from './search-properties.js';
 import { getProperty } from './get-property.js';
 import { getMarketStats } from './get-market-stats.js';
 import { estimateValue } from './estimate-value.js';
+import { getMarketReport } from './get-market-report.js';
 import { RateLimitError } from '../rate-limit.js';
 
 type ToolResult = { content: { type: 'text'; text: string }[]; isError: boolean };
@@ -122,7 +123,7 @@ export function registerTools(server: McpServer, client: ApiClient): void {
       description:
         'The market picture for a Bulgarian city or district on imotai.bg: number of offers, ' +
         'average and P25/P50/P75 for total price and price per m², a breakdown by room count, ' +
-        'and the neighbouring districts for comparison. Sale offers, all residential types. ' +
+        'and the neighbouring districts for comparison. Apartments for sale. ' +
         'Returns { available: false } below 8 offers.',
       inputSchema: {
         city: z.string().min(1).describe('City slug ("sofia") or Bulgarian name.'),
@@ -163,5 +164,26 @@ export function registerTools(server: McpServer, client: ApiClient): void {
     },
     async ({ city, district, propertyType, area, rooms }) =>
       guard(() => estimateValue(client, { city, district, propertyType, area, rooms })),
+  );
+
+  server.registerTool(
+    'get_market_report',
+    {
+      title: 'ImotAI monthly market report for a city',
+      description:
+        'The monthly ImotAI market report for a Bulgarian city: median asking price per m² of ' +
+        'apartments for sale, change versus the previous month, the same per district, and the ' +
+        'number of new listings in the month. Omit "month" for the latest report. Cite the "url" ' +
+        'and "source" fields when you use the numbers.',
+      inputSchema: {
+        city: z.string().min(1).describe('City slug ("plovdiv") or Bulgarian name ("Пловдив").'),
+        month: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional()
+          .describe('Report month as YYYY-MM, e.g. "2026-10". Omit for the latest.'),
+      },
+    },
+    async ({ city, month }) => guard(() => getMarketReport(client, { city, month })),
   );
 }

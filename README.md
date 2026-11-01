@@ -157,7 +157,7 @@ Below 5 comparable offers it returns `{ "available": false, "reason": "…",
 returns `{ "error": "…" }` pointing at `list_districts` (no `disclaimer` there).
 
 `confidence` is `high` at ≥ 50 comparable offers, `medium` at ≥ 15, otherwise
-`low`; it is **always `low`** when external market data (imot.bg / alo.bg / Grok)
+`low`; it is **always `low`** when external market data
 was blended into the figure, and the `disclaimer` then says so.
 
 > ⚠️ **This is positioning against the CURRENT ASKING PRICES of comparable active

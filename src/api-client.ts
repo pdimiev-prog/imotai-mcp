@@ -9,6 +9,8 @@ export type ValuationOptions = {
 
 export type PriceIndexEntry = { path: string; count: number; label: string };
 
+export type MarketReportIndexEntry = { citySlug: string; cityName: string; months: string[] };
+
 export type PropertyRecord = Record<string, unknown>;
 
 export type SearchParams = {
@@ -56,7 +58,12 @@ export class ApiClient {
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}${path}`, {
-        headers: { 'User-Agent': this.userAgent, Accept: 'application/json' },
+        headers: {
+          'User-Agent': this.userAgent,
+          Accept: 'application/json',
+          // Вътрешното API (127.0.0.1:4000) иначе пренасочва към https.
+          'x-forwarded-proto': 'https',
+        },
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (err) {
@@ -79,6 +86,7 @@ export class ApiClient {
           'User-Agent': this.userAgent,
           Accept: 'application/json',
           'Content-Type': 'application/json',
+          'x-forwarded-proto': 'https',
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(this.timeoutMs),
@@ -109,9 +117,20 @@ export class ApiClient {
   }
 
   getPricePage(path: string): Promise<PricePageRecord | null> {
-    return this.get<PricePageRecord>(`/properties/price?path=${encodeURIComponent(path)}`, {
+    // API-то иска „plovdiv/karshiyaka“, без „/ceni/“ отпред (иначе 404, 01.11.2026).
+    const apiPath = path.replace(/^\/?ceni\//, '').replace(/^\/+/, '');
+    return this.get<PricePageRecord>(`/properties/price?path=${encodeURIComponent(apiPath)}`, {
       allow404: true,
     });
+  }
+
+  getMarketReportIndex(): Promise<MarketReportIndexEntry[]> {
+    return this.get<MarketReportIndexEntry[]>('/properties/market-report-index') as Promise<MarketReportIndexEntry[]>;
+  }
+
+  getMarketReport(city: string, month: string): Promise<PropertyRecord | null> {
+    const qs = new URLSearchParams({ city, month });
+    return this.get<PropertyRecord>(`/properties/market-report?${qs.toString()}`, { allow404: true });
   }
 
   getValuation(params: ValuationParams): Promise<PropertyRecord | null> {
