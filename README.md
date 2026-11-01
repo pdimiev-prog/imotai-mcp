@@ -9,12 +9,32 @@ personal data (broker names, phones and free-text descriptions never leave the
 API). Numbers are based on **current asking prices of active listings**, not on
 closed transactions.
 
+## Use it online (no install)
+
+The server runs at **`https://imotai.bg/mcp`** (Streamable HTTP, stateless, no key).
+
+- **Claude** (claude.ai / desktop app): Settings → Connectors → Add custom connector → `https://imotai.bg/mcp`
+- **Claude Code**: `claude mcp add --transport http imotai https://imotai.bg/mcp`
+- **Cursor / VS Code / other clients** (`mcp.json`):
+
+```json
+{ "mcpServers": { "imotai": { "url": "https://imotai.bg/mcp" } } }
+```
+
+- **ChatGPT**: add a custom connector with `https://imotai.bg/mcp` (developer mode, depending on plan).
+
+Instructions in Bulgarian: <https://imotai.bg/ii-asistenti>. Online limits: 30 requests/min per client.
+
 ## Status
 
-**M6 — v1 complete.** Five tools (`list_districts`, `search_properties`,
-`get_property`, `get_market_stats`, `estimate_value`), each with an explicit output
-allowlist; the property tools carry a `marketContext` block; outbound calls are rate
-limited to 60/min per process.
+**v0.2.0.** Six tools (`list_districts`, `search_properties`, `get_property`,
+`get_market_stats`, `get_market_report`, `estimate_value`), each with an explicit output
+allowlist; the property tools carry a `marketContext` block. Two transports: stdio
+(`dist/index.js`, local) and Streamable HTTP (`src/http.ts`, the hosted endpoint above).
+`get_market_report` returns the monthly ImotAI market report for a city (median asking
+price per m², month-over-month change, districts, new listings).
+
+Data: CC BY 4.0 — credit ImotAI (imotai.bg).
 
 ## Install
 

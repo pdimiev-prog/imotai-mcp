@@ -20,7 +20,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "build:http": "esbuild src/http.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist-http/server.mjs --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+    "start:http": "node dist-http/server.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
